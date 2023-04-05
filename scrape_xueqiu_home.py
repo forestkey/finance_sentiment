@@ -3,6 +3,7 @@ import yaml
 
 import time
 import random
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium import webdriver as wd
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -22,7 +23,9 @@ class ScrapeXueqiuHome:
             chrome_options.add_argument('--headless')
             chrome_options.add_argument('--disable-gpu')
 
-        driver = wd.Chrome(options=chrome_options)
+        # driver = wd.Chrome(options=chrome_options)
+        # driver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+        driver = wd.Chrome(ChromeDriverManager().install(), options=chrome_options)
 
         driver.get(url)
 
@@ -104,19 +107,25 @@ class ScrapeXueqiuHome:
             
             ps = article_detail.find_all('p')
             for p in ps:
-                # print(p.text)
                 f.write(p.text)
                 f.write('\r')
             
             f.write('\r')
 
-    def scrape(self, time_str, scroll_times=10, details=False):
+    def scrape(self, scroll_times=10, details=False):
+        current_time = time.localtime()
+        time_str = time.strftime("%Y%m%d-%H%M%S", current_time) 
+        date = time.strftime("%Y%m%d", current_time) 
+        print('start scraping at {}'.format(time_str))
+
         headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
         page_source = self.get_scrolled_source(self.url, scroll_times)
         article_list = self.get_article_list(page_source)
 
-        save_dir_path = 'data/xueqiu_home/'
+        save_dir_path = f'data/xueqiu_home/{date}'
+        if os.path.exists(save_dir_path) is False:
+            os.makedirs(save_dir_path)
         outlines_save_path = os.path.join(save_dir_path, f'outlines_{time_str}.yaml')
         yaml.dump(article_list, open(outlines_save_path, 'w', encoding='utf-8'), allow_unicode=True)
 
@@ -128,3 +137,11 @@ class ScrapeXueqiuHome:
                 time.sleep(random.randint(1, 3))
 
         return outlines_save_path
+
+
+if __name__ == '__main__':
+    time_str = time.strftime('%Y%m%d_%H%M%S', time.localtime())
+    scrape = ScrapeXueqiuHome()
+
+    outlines_save_path = scrape.scrape(time_str, scroll_times=10, details=False)
+    print(outlines_save_path)
